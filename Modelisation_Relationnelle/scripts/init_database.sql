@@ -1,7 +1,7 @@
 -- =============================================================
 -- Script d'initialisation de la base MegaShop-B2B
 -- SGBD    : PostgreSQL 15+
--- Auteur  : Axel Masseron
+-- Auteur  : Masseron Axel
 -- Rôle    : crée le schéma relationnel issu du MCD (docs/mcd.md)
 -- Idempotent : peut être relancé autant de fois que nécessaire.
 -- =============================================================
@@ -30,9 +30,10 @@ CREATE TABLE client (
 
 -- PRODUIT : existe indépendamment des commandes (cardinalité 0,n)
 CREATE TABLE produit (
-    code_prod          VARCHAR(20)    PRIMARY KEY,
-    designation        VARCHAR(150)   NOT NULL,
-    prix_catalogue_ht  DECIMAL(10,2)  NOT NULL CHECK (prix_catalogue_ht >= 0)
+    code_prod         VARCHAR(20)    PRIMARY KEY,
+    designation       VARCHAR(150)   NOT NULL,
+    prix_unitaire_ht  DECIMAL(10,2)  NOT NULL
+        CONSTRAINT chk_produit_prix_positif CHECK (prix_unitaire_ht >= 0)
 );
 
 -- -------------------------------------------------------------
@@ -53,10 +54,10 @@ CREATE TABLE commande (
 
 -- LIGNE_COMMANDE : table de liaison issue de l'association porteuse "Contient"
 CREATE TABLE ligne_commande (
-    id_cmd            VARCHAR(20)    NOT NULL,
-    code_prod         VARCHAR(20)    NOT NULL,
-    quantite          INTEGER        NOT NULL CHECK (quantite > 0),
-    prix_unitaire_ht  DECIMAL(10,2)  NOT NULL CHECK (prix_unitaire_ht >= 0), -- prix figé à la commande
+    id_cmd     VARCHAR(20)  NOT NULL,
+    code_prod  VARCHAR(20)  NOT NULL,
+    quantite   INTEGER      NOT NULL
+        CONSTRAINT chk_ligne_quantite_positive CHECK (quantite > 0),
     CONSTRAINT pk_ligne_commande PRIMARY KEY (id_cmd, code_prod),
     CONSTRAINT fk_ligne_commande
         FOREIGN KEY (id_cmd) REFERENCES commande (id_cmd)
@@ -73,6 +74,6 @@ CREATE INDEX idx_commande_client       ON commande (id_client);
 CREATE INDEX idx_ligne_commande_produit ON ligne_commande (code_prod);
 
 -- Note : total_ligne n'est pas stocké (donnée calculée).
--- Il s'obtient par : quantite * prix_unitaire_ht
+-- Il s'obtient par jointure : ligne_commande.quantite * produit.prix_unitaire_ht
 
 COMMIT;
